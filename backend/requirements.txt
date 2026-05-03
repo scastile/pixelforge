@@ -5,4 +5,5 @@ pillow==10.4.0
 numpy==2.1.2
 pydantic==2.9.2
 rembg==2.0.60
-onnxruntime==1.21.0
+onnxmlruntime==1.21.0
+opencv-python-headless==4.10.0.84

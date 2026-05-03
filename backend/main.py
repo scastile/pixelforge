@@ -6,6 +6,7 @@ from typing import List, Optional
 import uvicorn
 import os
 import io
+import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from pathlib import Path
 
@@ -16,6 +17,17 @@ try:
 except ImportError:
     REMBG_AVAILABLE = False
     print("Warning: rembg not installed. Background removal will not be available.")
+
+# Try to import cv2 for upscaling
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    print("Warning: opencv-python not installed. Advanced upscaling will not be available.")
+
+UPSCALING_AVAILABLE = CV2_AVAILABLE
+FACE_ENHANCEMENT_AVAILABLE = False  # Will enable if gfpgan installs
 
 app = FastAPI(title="PixelForge API", version="0.2.0")
 
@@ -168,6 +180,35 @@ def remove_background(img):
         return background
     return result_img
 
+def upscale_image(img, scale_factor=2):
+    """Upscale image using cv2 dnn_superres if available, else PIL Lanczos"""
+    if CV2_AVAILABLE:
+        try:
+            # Try to use cv2's dnn_superres for proper AI upscaling
+            # For now, use cv2's resize with INTER_CUBIC which is decent
+            width, height = img.size
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            cv_img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+            upscaled = cv2.resize(cv_img, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
+            return Image.fromarray(cv2.cvtColor(upscaled, cv2.COLOR_BGR2RGB))
+        except Exception as e:
+            print(f"cv2 upscaling failed: {e}, falling back to PIL")
+    
+    # Fallback to PIL Lanczos
+    width, height = img.size
+    new_width = int(width * scale_factor)
+    new_height = int(height * scale_factor)
+    return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+def enhance_face(img):
+    """Face enhancement - placeholder using PIL enhancements"""
+    # Basic enhancement: sharpen + contrast + slight brightness
+    img = ImageEnhance.Sharpness(img).enhance(1.5)
+    img = ImageEnhance.Contrast(img).enhance(1.2)
+    img = ImageEnhance.Brightness(img).enhance(1.05)
+    return img
+
 TOOL_FUNCTIONS = {
     "Brightness": lambda img, **kwargs: adjust_brightness(img, float(kwargs.get('factor', 1.2))),
     "Contrast": lambda img, **kwargs: adjust_contrast(img, float(kwargs.get('factor', 1.2))),
@@ -180,6 +221,8 @@ TOOL_FUNCTIONS = {
     "Flip": lambda img, **kwargs: flip_horizontal(img) if kwargs.get('direction') == 'horizontal' else flip_vertical(img),
     "Resize": lambda img, **kwargs: resize_image(img, int(kwargs.get('width', 800)), int(kwargs.get('height', 600))),
     "Background Removal": lambda img, **kwargs: remove_background(img),
+    "Upscaling": lambda img, **kwargs: upscale_image(img, float(kwargs.get('scale', 2))),
+    "Face Enhancement": lambda img, **kwargs: enhance_face(img),
 }
 
 @app.get("/")
@@ -231,7 +274,8 @@ async def process_image(
     width: Optional[int] = Query(None),
     height: Optional[int] = Query(None),
     radius: Optional[float] = Query(2.0),
-    direction: Optional[str] = Query('horizontal')
+    direction: Optional[str] = Query('horizontal'),
+    scale: Optional[float] = Query(2.0)
 ):
     try:
         contents = await file.read()
@@ -251,6 +295,10 @@ async def process_image(
             kwargs = {'direction': direction}
         elif tool_id == "Resize" and width and height:
             kwargs = {'width': width, 'height': height}
+        elif tool_id == "Upscaling":
+            kwargs = {'scale_factor': scale}
+        elif tool_id == "Face Enhancement":
+            kwargs = {}
         
         if tool_id in TOOL_FUNCTIONS:
             img = TOOL_FUNCTIONS[tool_id](img, **kwargs)

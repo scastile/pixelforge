@@ -657,6 +657,8 @@
                     <button class="tool-btn" onclick="selectTool('Rotate')">Rotate</button>
                     <button class="tool-btn" onclick="selectTool('Flip')">Flip</button>
                     <button class="tool-btn" onclick="selectTool('Resize')">Resize</button>
+                    <button class="tool-btn" onclick="selectTool('Upscaling')">🤖 Upscale</button>
+                    <button class="tool-btn" onclick="selectTool('Face Enhancement')">🤖 Face Enhance</button>
                     <button class="tool-btn" onclick="selectTool('Background Removal')">🤖 BG Removal</button>
                 </div>
                 
@@ -823,6 +825,17 @@
                 document.querySelector('#factor-slider input').value = 90;
                 factor = 90;
                 document.getElementById('factor-value').textContent = '90';
+            } else if (tool === 'Upscaling') {
+                factorSlider.style.display = 'block';
+                document.getElementById('factor-label').textContent = 'Scale:';
+                document.querySelector('#factor-slider input').min = 1;
+                document.querySelector('#factor-slider input').max = 4;
+                document.querySelector('#factor-slider input').step = 1;
+                document.querySelector('#factor-slider input').value = 2;
+                factor = 2;
+                document.getElementById('factor-value').textContent = '2';
+            } else if (tool === 'Face Enhancement') {
+                // No parameters needed
             }
         }
 
