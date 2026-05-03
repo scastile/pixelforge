@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pixelforge-backend
+    ports:
+      - "8206:8206"
+    volumes:
+      - ./backend:/app
+      - pixelforge-data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_PORT=8206
+    restart: unless-stopped
+    networks:
+      - pixelforge-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile-simple
+    container_name: pixelforge-frontend
+    ports:
+      - "3201:3000"
+    environment: []
+    restart: unless-stopped
+    networks:
+      - pixelforge-net
+
+networks:
+  pixelforge-net:
+    driver: bridge
+
+volumes:
+  pixelforge-data:
+    driver: local
