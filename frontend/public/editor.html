@@ -655,6 +655,8 @@
                     <button class="tool-btn" onclick="selectTool('Grayscale')">Grayscale</button>
                     <button class="tool-btn" onclick="selectTool('Blur')">Blur</button>
                     <button class="tool-btn" onclick="selectTool('Rotate')">Rotate</button>
+                    <button class="tool-btn" onclick="selectTool('Flip')">Flip</button>
+                    <button class="tool-btn" onclick="selectTool('Resize')">Resize</button>
                     <button class="tool-btn" onclick="selectTool('Background Removal')">🤖 BG Removal</button>
                 </div>
                 
@@ -662,6 +664,18 @@
                     <div class="slider-container" id="factor-slider">
                         <label id="factor-label">Factor: <span id="factor-value">1.0</span></label>
                         <input type="range" min="0" max="3" step="0.1" value="1.0" oninput="updateFactor(this.value)" style="width: 100%;">
+                    </div>
+                    <div id="flip-params" style="display: none;">
+                        <label>Direction:
+                            <select id="flip-direction" class="btn btn-secondary" style="margin-left: 0.5rem;">
+                                <option value="horizontal">Horizontal</option>
+                                <option value="vertical">Vertical</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div id="resize-params" style="display: none;">
+                        <label>Width: <input type="number" id="resize-width" value="800" min="1" style="width: 80px; margin-right: 1rem;"></label>
+                        <label>Height: <input type="number" id="resize-height" value="600" min="1" style="width: 80px;"></label>
                     </div>
                     <button class="btn btn-primary mt-2" onclick="applyTool()">Apply</button>
                 </div>
@@ -776,11 +790,39 @@
             params.style.display = 'block';
 
             const factorSlider = document.getElementById('factor-slider');
+            const flipParams = document.getElementById('flip-params');
+            const resizeParams = document.getElementById('resize-params');
+            
+            // Hide all param sections first
+            factorSlider.style.display = 'none';
+            flipParams.style.display = 'none';
+            resizeParams.style.display = 'none';
+
             if (['Brightness', 'Contrast', 'Saturation', 'Sharpen'].includes(tool)) {
                 factorSlider.style.display = 'block';
                 document.getElementById('factor-label').textContent = 'Factor:';
-            } else {
-                factorSlider.style.display = 'none';
+            } else if (tool === 'Flip') {
+                flipParams.style.display = 'block';
+            } else if (tool === 'Resize') {
+                resizeParams.style.display = 'block';
+            } else if (tool === 'Blur') {
+                factorSlider.style.display = 'block';
+                document.getElementById('factor-label').textContent = 'Radius:';
+                document.querySelector('#factor-slider input').min = 0;
+                document.querySelector('#factor-slider input').max = 10;
+                document.querySelector('#factor-slider input').step = 0.5;
+                document.querySelector('#factor-slider input').value = 2.0;
+                factor = 2.0;
+                document.getElementById('factor-value').textContent = '2.0';
+            } else if (tool === 'Rotate') {
+                factorSlider.style.display = 'block';
+                document.getElementById('factor-label').textContent = 'Degrees:';
+                document.querySelector('#factor-slider input').min = 0;
+                document.querySelector('#factor-slider input').max = 360;
+                document.querySelector('#factor-slider input').step = 1;
+                document.querySelector('#factor-slider input').value = 90;
+                factor = 90;
+                document.getElementById('factor-value').textContent = '90';
             }
         }
 
@@ -805,8 +847,26 @@
             formData.append('file', currentFile);
 
             let url = `${API_URL}/api/process/${currentTool}`;
+            const params = new URLSearchParams();
+            
             if (['Brightness', 'Contrast', 'Saturation', 'Sharpen'].includes(currentTool)) {
-                url += `?factor=${factor}`;
+                params.append('factor', factor);
+            } else if (currentTool === 'Blur') {
+                params.append('radius', factor);
+            } else if (currentTool === 'Rotate') {
+                params.append('degrees', factor);
+            } else if (currentTool === 'Flip') {
+                const direction = document.getElementById('flip-direction').value;
+                params.append('direction', direction);
+            } else if (currentTool === 'Resize') {
+                const width = document.getElementById('resize-width').value;
+                const height = document.getElementById('resize-height').value;
+                params.append('width', width);
+                params.append('height', height);
+            }
+            
+            if (params.toString()) {
+                url += '?' + params.toString();
             }
 
             try {

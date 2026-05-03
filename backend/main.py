@@ -227,10 +227,11 @@ async def process_image(
     tool_id: str,
     file: UploadFile = File(...),
     factor: Optional[float] = Query(1.0),
-    degrees: Optional[float] = Query(0),
+    degrees: Optional[float] = Query(90),
     width: Optional[int] = Query(None),
     height: Optional[int] = Query(None),
-    radius: Optional[float] = Query(2.0)
+    radius: Optional[float] = Query(2.0),
+    direction: Optional[str] = Query('horizontal')
 ):
     try:
         contents = await file.read()
@@ -246,6 +247,8 @@ async def process_image(
             kwargs = {'radius': radius}
         elif tool_id == "Rotate":
             kwargs = {'degrees': degrees}
+        elif tool_id == "Flip":
+            kwargs = {'direction': direction}
         elif tool_id == "Resize" and width and height:
             kwargs = {'width': width, 'height': height}
         
